@@ -1,34 +1,47 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
+import { actions } from "../../actions";
 import { useAuth } from "../../hooks/useAuth";
 import useAxios from "../../hooks/useAxios";
+import { useProfile } from "../../hooks/useProfile";
+import MyPosts from "../profile/MyPosts";
+import ProfileInfo from "../profile/ProfileInfo";
 
 export default function ProfilePage() {
-  const [user, setUser] = useState(null);
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const { state, dispatch } = useProfile();
   const { api } = useAxios();
   const { auth } = useAuth();
+  console.log(auth);
   useEffect(() => {
-    setLoading(true);
+    dispatch({ type: actions.profile.DATA_FETCHING });
     const fetchProfile = async () => {
       try {
         const response = await api.get(
           `http://localhost:3000/profile/${auth?.user?.id}`
         );
-        setUser(response?.data?.user);
-        setPosts(response?.data?.posts);
+
+        if (response.status === 200) {
+          dispatch({
+            type: actions.profile.DATA_FETCHED,
+            data: response.data,
+          });
+        }
       } catch (error) {
         console.error(error);
-        setError(error);
-      } finally {
-        setLoading(false);
+        dispatch({
+          type: actions.profile.DATA_FETCH_ERROR,
+          error: error.message,
+        });
       }
     };
     fetchProfile();
   }, []);
-  if (loading) {
+  if (state?.loading) {
     return <div>loading...</div>;
   }
-  return <div className="color-red">{user?.firstName}</div>;
+  return (
+    <>
+      <ProfileInfo />
+      <MyPosts />
+    </>
+  );
 }
